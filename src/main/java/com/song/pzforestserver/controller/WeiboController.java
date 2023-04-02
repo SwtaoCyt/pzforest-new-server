@@ -5,22 +5,23 @@ import com.song.pzforestserver.http.WeiboResponse;
 import com.song.pzforestserver.util.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+
 import jakarta.servlet.http.HttpServletResponse;
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.Response;
+import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.request.async.DeferredResult;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 
 @Tag(name="WeiboController")
 @RestController
 @RequestMapping("/weibo")
 public class WeiboController {
-
+    private final OkHttpClient httpClient = new OkHttpClient();
     WeiboResponse weiboResponse = new WeiboResponse();
     @Operation(summary = "test")
     @RequestMapping("send")
@@ -58,30 +59,34 @@ public class WeiboController {
      * @param accessToken
      * @param id
      * @param comment
-     * @param res
      * @throws IOException
      */
     @Operation(summary="createComment")
     @RequestMapping("createComment")
-    public void createComment(@RequestParam("accessToken") String accessToken,
-                              @RequestParam("id") String id,
-                              @RequestParam("comment") String comment,
-                              HttpServletResponse res)throws IOException{
-        weiboResponse.createComment(accessToken, id, comment, new Callback() {
-            @Override
-            public void onFailure(@NotNull Call call, @NotNull IOException e) {
-              e.printStackTrace();
-            }
+    public DeferredResult<String> createComment(@RequestParam("access_token") String accessToken,
+                                                @RequestParam("id") long id,
+                                                @RequestParam("comment") String comment) throws IOException {
 
-            @Override
-            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                res.setCharacterEncoding("UTF-8");
-                res.setContentType("application/json;charset=UTF-8");
-                res.getWriter().write(response.body().string());
 
-            }
-        });
+
+
+        return weiboResponse.createComment(accessToken, String.valueOf(id),comment);
     }
 
+    @Operation(summary="reply")
+    @RequestMapping("reply")
+    public DeferredResult<String> reply(@RequestParam("access_token") String accessToken,
+                                        @RequestParam("cid") int cid,
+                                        @RequestParam("id") int id,
+                                        @RequestParam("comment") String comment
+    ) throws IOException {
+
+        return weiboResponse.reply(accessToken,cid,id,comment);
+    }
 
 }
+
+
+
+
+

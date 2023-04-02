@@ -1,6 +1,5 @@
 package com.song.pzforestserver.http;
 
-import cn.hutool.json.JSON;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
@@ -9,12 +8,15 @@ import com.song.pzforestserver.entity.Status;
 import com.song.pzforestserver.entity.StatusCounts;
 import com.song.pzforestserver.entity.WeiboException;
 import com.song.pzforestserver.util.Result;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.web.context.request.async.DeferredResult;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,7 +27,7 @@ public class WeiboResponse {
     OkHttpClient client = new OkHttpClient();
 
 
-/**OAuth2 ÊÚÈ¨µÚ¶ş²½ access_token ½Ó¿Ú£¬ÓÃ code »»È¡ÊÚÈ¨ access_token£¬¸Ã²½ĞèÔÚ·şÎñ¶ËÍê³É**/
+    /**OAuth2 æˆæƒç¬¬äºŒæ­¥ access_token æ¥å£ï¼Œç”¨ code æ¢å–æˆæƒ access_tokenï¼Œè¯¥æ­¥éœ€åœ¨æœåŠ¡ç«¯å®Œæˆ**/
     public void  getAccessToken(String clientId,String client_secret,String code,String redirect_uri)
     {
         val requestBody = new FormBody.Builder()
@@ -52,7 +54,7 @@ public class WeiboResponse {
         });
 
     }
-/**»ñÈ¡µ±Ç°µÇÂ¼ÓÃ»§¼°ÆäËù¹Ø×¢£¨ÊÚÈ¨£©ÓÃ»§µÄ×îĞÂÎ¢²©**/
+    /**è·å–å½“å‰ç™»å½•ç”¨æˆ·åŠå…¶æ‰€å…³æ³¨ï¼ˆæˆæƒï¼‰ç”¨æˆ·çš„æœ€æ–°å¾®åš**/
     public  Result home_timeline(String accessToken,String sinceId,String maxId,int count,int page,int baseApp,int feature,int trimUser){
 
         String url = BASE_URL+"2/statuses/home_timeline.json"
@@ -80,7 +82,7 @@ public class WeiboResponse {
         return new Result(200,"ok",null);
     }
     /**
-     * »ñÈ¡Ä³¸öÓÃ»§×îĞÂ·¢±íµÄÎ¢²©ÁĞ±í
+     * è·å–æŸä¸ªç”¨æˆ·æœ€æ–°å‘è¡¨çš„å¾®åšåˆ—è¡¨
      * GET
      * **/
     public  Result user_timeline(String accessToken,int page,int count,int feature) {
@@ -109,7 +111,7 @@ public class WeiboResponse {
 
     /**
      * https://api.weibo.com/2/statuses/show.json
-     * ¸ù¾İÎ¢²©ID»ñÈ¡µ¥ÌõÎ¢²©ÄÚÈİ
+     * æ ¹æ®å¾®åšIDè·å–å•æ¡å¾®åšå†…å®¹
      */
     public Status show(String id, String access_token) throws IOException, WeiboException {
         OkHttpClient client = new OkHttpClient();
@@ -142,7 +144,7 @@ public class WeiboResponse {
      *
      * @param accessToken
      * @param ids
-     * @return  ÅúÁ¿»ñÈ¡Ö¸¶¨Î¢²©µÄ×ª·¢ÊıÆÀÂÛÊı
+     * @return  æ‰¹é‡è·å–æŒ‡å®šå¾®åšçš„è½¬å‘æ•°è¯„è®ºæ•°
      * @throws IOException
      */
     public List<StatusCounts> getStatusCounts(String accessToken,String... ids)throws IOException{
@@ -172,7 +174,7 @@ public class WeiboResponse {
      * @param maxId
      * @param count
      * @param page
-     * @return ¸ù¾İÎ¢²©ID·µ»ØÄ³ÌõÎ¢²©µÄÆÀÂÛÁĞ±í
+     * @return æ ¹æ®å¾®åšIDè¿”å›æŸæ¡å¾®åšçš„è¯„è®ºåˆ—è¡¨
      * @throws IOException
      * @throws WeiboException
      */
@@ -201,23 +203,82 @@ public class WeiboResponse {
         return  commentsLIst;
     }
 
-     public void createComment(String access_token,String comment,String id,Callback callback) throws IOException
-     {
-         val requestBody = new FormBody.Builder()
-                 .add("access_token", access_token)
-                 .add("comment",comment)
-                 .add("id",id)
-                 .add("rip","106.75.52.202")
+    public DeferredResult<String> createComment(String access_token,  String id,String comment) throws IOException
+    {
+        String url = "https://api.weibo.com/2/comments/create.json";
+        HttpUrl.Builder urlBuilder = HttpUrl.parse(url).newBuilder();
+        urlBuilder.addQueryParameter("access_token", accessToken);
+        urlBuilder.addQueryParameter("id", String.valueOf(id));
+        urlBuilder.addQueryParameter("comment", comment);
+        urlBuilder.addQueryParameter("rip","119.129.228.246");
+        String fullUrl = urlBuilder.build().toString();
 
-                 .build();
-         val request = new Request.Builder()
-                 .url(BASE_URL+"2/comments/create.json")
-                 .post(requestBody)
-                 .build();
+        Request request = new Request.Builder()
+                .url(fullUrl)
+                .post(RequestBody.create("", MediaType.get("application/x-www-form-urlencoded")))
+                .build();
+        DeferredResult<String> deferredResult = new DeferredResult<>();
+        Call call = client.newCall(request);
+        call.enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                deferredResult.setErrorResult(e);
+            }
 
-        client.newCall(request).enqueue(callback);
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                String responseBody = response.body().string();
+                if (response.isSuccessful()) {
+                    deferredResult.setResult(responseBody);
+                } else {
+                    deferredResult.setErrorResult(responseBody);
+                }
+            }
+        });
+        return  deferredResult;
+    }
 
-     }
 
 
+    public DeferredResult<String> reply(String access_token,int cid,  int id,String comment) throws IOException
+    {
+        String url = "https://api.weibo.com/2/comments/reply.json";
+        HttpUrl.Builder urlBuilder = HttpUrl.parse(url).newBuilder();
+        urlBuilder.addQueryParameter("access_token", accessToken);
+        urlBuilder.addQueryParameter("cid",String.valueOf(cid));
+        urlBuilder.addQueryParameter("id", String.valueOf(id));
+        urlBuilder.addQueryParameter("comment", comment);
+        urlBuilder.addQueryParameter("rip","119.129.228.246");
+        String fullUrl = urlBuilder.build().toString();
+
+        Request request = new Request.Builder()
+                .url(fullUrl)
+                .post(RequestBody.create("", MediaType.get("application/x-www-form-urlencoded")))
+                .build();
+        DeferredResult<String> deferredResult = new DeferredResult<>();
+        Call call = client.newCall(request);
+        call.enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                deferredResult.setErrorResult(e);
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                String responseBody = response.body().string();
+                if (response.isSuccessful()) {
+                    deferredResult.setResult(responseBody);
+                } else {
+                    deferredResult.setErrorResult(responseBody);
+                }
+            }
+        });
+        return  deferredResult;
+    }
 }
+
+
+
+
+
+

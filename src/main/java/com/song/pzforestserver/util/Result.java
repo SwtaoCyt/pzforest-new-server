@@ -1,87 +1,88 @@
 package com.song.pzforestserver.util;
 
-
 import java.io.Serializable;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.Map;
 
-//题目返回结果工具类
-public class Result extends LinkedHashMap<String, Object> implements Serializable {
-    public static final  long serialVersionUID=1l;
-    public static final int  CODE_SUCCESS= 200;
-    public static final int  CODE_ERROR = 500;
+// 响应结果工具类
+public class Result<T> implements Serializable {
 
-    public Result(int code,String msg,Object data){
-        this.setCode(code);
-        this.setMsg(msg);
-        this.setData(data);
+    private static final long serialVersionUID = 1L;
+
+    // 状态码
+    private int code;
+
+    // 状态消息
+    private String message;
+
+    // 数据
+    private T data;
+
+    public Result(int code, String message, T data) {
+        this.code = code;
+        this.message = message;
+        this.data = data;
     }
 
-    public Integer getCode(){ return  (Integer) this.get("code");}
-    public String getMsg(){return  (String) this.get("msg");}
-    public Object getData(){return  this.get("data");}
+    public int getCode() {
+        return code;
+    }
 
-    public Result setCode(int code){
-        this.put("code",code);
+    public Result<T> setCode(int code) {
+        this.code = code;
         return this;
     }
 
-    public Result set(String key,Object data){
-        this.put(key,data);
+    public String getMessage() {
+        return message;
+    }
+
+    public Result<T> setMessage(String message) {
+        this.message = message;
         return this;
     }
 
-    public Result setData(Object data){
-        this.put("data",data);
+    public T getData() {
+        return data;
+    }
+
+    public Result<T> setData(T data) {
+        this.data = data;
         return this;
     }
 
-    public Result setMsg(String msg){
-        this.put("msg",msg);
-        return this;
+    // 成功的响应结果
+    public static <T> Result<T> success() {
+        return new Result<>(200, "OK", null);
     }
 
-    public Result setMap(Map<String, ?> map) {
-        Iterator var2 = map.keySet().iterator();
-
-        while(var2.hasNext()) {
-            String key = (String)var2.next();
-            this.put(key, map.get(key));
-        }
-
-        return this;
+    public static <T> Result<T> success(T data) {
+        return new Result<>(200, "OK", data);
     }
 
-    public static Result ok() {
-        return new Result(200, "ok", (Object)null);
+    public static <T> Result<T> success(String message, T data) {
+        return new Result<>(200, message, data);
     }
 
-    public static Result ok(String msg) {
-        return new Result(200, msg, (Object)null);
+    // 失败的响应结果
+    public static <T> Result<T> error() {
+        return new Result<>(500, "Internal Server Error", null);
     }
 
-    public static Result code(int code) {
-        return new Result(code, (String)null, (Object)null);
+    public static <T> Result<T> error(String message) {
+        return new Result<>(500, message, null);
     }
 
-    public static Result data(Object data) {
-        return new Result(200, "ok", data);
+    public static <T> Result<T> error(int code, String message) {
+        return new Result<>(code, message, null);
     }
 
-    public static Result error() {
-        return new Result(500, "error", (Object)null);
-    }
-
-    public static Result error(String msg) {
-        return new Result(500, msg, (Object)null);
-    }
-
-    public static Result get(int code, String msg, Object data) {
-        return new Result(code, msg, data);
-    }
-
-    public String toString() {
-        return "{\"code\": " + this.getCode() + ", \"msg\": \"" + this.getMsg() + "\", \"data\": \"" + this.getData() + "\"}";
+    // 转换为Map
+    public Map<String, Object> toMap() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("code", code);
+        map.put("message", message);
+        map.put("data", data);
+        return map;
     }
 }

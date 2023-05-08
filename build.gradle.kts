@@ -26,7 +26,10 @@ dependencies {
     compileOnly("org.projectlombok:lombok")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("com.mysql:mysql-connector-j")
-    runtimeOnly("org.mariadb.jdbc:mariadb-java-client")
+
+    // https://mvnrepository.com/artifact/org.mariadb.jdbc/mariadb-java-client
+    implementation("org.mariadb.jdbc:mariadb-java-client:3.1.4")
+
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
     annotationProcessor("org.projectlombok:lombok")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
@@ -42,6 +45,8 @@ dependencies {
     // https://mvnrepository.com/artifact/com.squareup.okhttp3/okhttp
     implementation("com.squareup.okhttp3:okhttp:5.0.0-alpha.11")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.12.5")
+// Sa-Token 权限认证，在线文档：https://sa-token.cc
+    implementation ("cn.dev33:sa-token-spring-boot3-starter:1.34.0")
 
     implementation("cn.hutool:hutool-all:5.8.15")
 }

@@ -12,9 +12,13 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import okhttp3.*;
+
+import okio.ByteString;
+import org.apache.ibatis.javassist.bytecode.ByteArray;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.web.context.request.async.DeferredResult;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -238,6 +242,43 @@ public class WeiboResponse {
         return  deferredResult;
     }
 
+
+    public DeferredResult<String> sendStatus(String access_token, String status, File image) throws IOException {
+        String url = "https://api.weibo.com/2/statuses/share.json";
+        MultipartBody requestBody = new MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart("access_token", access_token)
+                .addFormDataPart("status", status + " http://pzforest.com")
+                .addFormDataPart("rip", "106.52.75.202")
+                .addFormDataPart("pic", image.getPath(), RequestBody.create(MediaType.parse("image/*"), image))
+                .build();
+
+        Request request = new Request.Builder()
+                .url(url)
+                .post(requestBody)
+                .build();
+
+        DeferredResult<String> deferredResult = new DeferredResult<>();
+        Call call = client.newCall(request);
+        call.enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                deferredResult.setErrorResult(e);
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                String responseBody = response.body().string();
+                if (response.isSuccessful()) {
+                    log.info(responseBody);
+                    deferredResult.setResult(responseBody);
+                } else {
+                    deferredResult.setErrorResult(responseBody);
+                }
+            }
+        });
+        return deferredResult;
+    }
 
 
     public DeferredResult<String> reply(String access_token,int cid,  int id,String comment) throws IOException

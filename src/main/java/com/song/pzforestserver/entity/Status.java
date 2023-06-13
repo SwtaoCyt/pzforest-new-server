@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.io.Serializable;
+import java.util.Date;
 import lombok.Data;
 
 /**
@@ -17,141 +18,126 @@ public class Status implements Serializable {
     /**
      * 微博ID
      */
-    @TableId(value = "id", type = IdType.AUTO)
-    private Integer id;
+    @TableId
+    private String id;
 
     /**
      * 微博MID
      */
-    @TableField(value = "mid")
-    private Integer mid;
+    private String mid;
 
     /**
      * 字符串型的微博ID
      */
-    @TableField(value = "idstr")
     private String idstr;
 
     /**
      * 微博信息内容
      */
-    @TableField(value = "text")
     private String text;
 
     /**
      * 微博来源
      */
-    @TableField(value = "source")
     private String source;
 
     /**
      * 是否已收藏
      */
-    @TableField(value = "favorited")
     private Integer favorited;
 
     /**
      * 是否被截断
      */
-    @TableField(value = "truncated")
     private Integer truncated;
 
     /**
      * 回复ID
      */
-    @TableField(value = "in_reply_to_status_id")
-    private String in_reply_to_status_id;
+    private String inReplyToStatusId;
 
     /**
      * 回复人UID
      */
-    @TableField(value = "in_reply_to_user_id")
-    private String in_reply_to_user_id;
+    private String inReplyToUserId;
 
     /**
      * 回复人昵称
      */
-    @TableField(value = "in_reply_to_screen_name")
-    private String in_reply_to_screen_name;
+    private String inReplyToScreenName;
 
     /**
      * 缩略图片地址
      */
-    @TableField(value = "thumbnail_pic")
-    private String thumbnail_pic;
+    private String thumbnailPic;
 
     /**
      * 中等尺寸图片地址
      */
-    @TableField(value = "bmiddle_pic")
-    private String bmiddle_pic;
+    private String bmiddlePic;
 
     /**
      * 原始图片地址
      */
-    @TableField(value = "original_pic")
-    private String original_pic;
+    private String originalPic;
 
     /**
      * 地理信息字段
      */
-    @TableField(value = "geo")
     private String geo;
 
     /**
      * 微博作者的用户ID
      */
-    @TableField(value = "user_id")
-    private Integer user_id;
+    private String userId;
 
     /**
      * 被转发的原微博信息字段
      */
-    @TableField(value = "retweeted_status")
-    private String retweeted_status;
+    private String retweetedStatus;
 
     /**
      * 转发数
      */
-    @TableField(value = "reposts_count")
-    private Integer reposts_count;
+    private Integer repostsCount;
 
     /**
      * 评论数
      */
-    @TableField(value = "comments_count")
-    private Integer comments_count;
+    private Integer commentsCount;
 
     /**
      * 表态数
      */
-    @TableField(value = "attitudes_count")
-    private Integer attitudes_count;
+    private Integer attitudesCount;
 
     /**
      * 暂未支持
      */
-    @TableField(value = "mlevel")
     private Integer mlevel;
 
     /**
      * 微博的可见性及指定可见分组信息
      */
-    @TableField(value = "visible")
     private String visible;
 
     /**
      * 微博配图ID
      */
-    @TableField(value = "pic_ids")
-    private String pic_ids;
+    private String picIds;
 
     /**
      * 微博流内的推广微博ID
      */
-    @TableField(value = "ad")
     private String ad;
 
+    /**
+     * 创建时间
+     */
+    private Date createdTime;
+
+    @TableField(exist = false)
+    private Image image;
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
 
@@ -174,22 +160,23 @@ public class Status implements Serializable {
             && (this.getSource() == null ? other.getSource() == null : this.getSource().equals(other.getSource()))
             && (this.getFavorited() == null ? other.getFavorited() == null : this.getFavorited().equals(other.getFavorited()))
             && (this.getTruncated() == null ? other.getTruncated() == null : this.getTruncated().equals(other.getTruncated()))
-            && (this.getIn_reply_to_status_id() == null ? other.getIn_reply_to_status_id() == null : this.getIn_reply_to_status_id().equals(other.getIn_reply_to_status_id()))
-            && (this.getIn_reply_to_user_id() == null ? other.getIn_reply_to_user_id() == null : this.getIn_reply_to_user_id().equals(other.getIn_reply_to_user_id()))
-            && (this.getIn_reply_to_screen_name() == null ? other.getIn_reply_to_screen_name() == null : this.getIn_reply_to_screen_name().equals(other.getIn_reply_to_screen_name()))
-            && (this.getThumbnail_pic() == null ? other.getThumbnail_pic() == null : this.getThumbnail_pic().equals(other.getThumbnail_pic()))
-            && (this.getBmiddle_pic() == null ? other.getBmiddle_pic() == null : this.getBmiddle_pic().equals(other.getBmiddle_pic()))
-            && (this.getOriginal_pic() == null ? other.getOriginal_pic() == null : this.getOriginal_pic().equals(other.getOriginal_pic()))
+            && (this.getInReplyToStatusId() == null ? other.getInReplyToStatusId() == null : this.getInReplyToStatusId().equals(other.getInReplyToStatusId()))
+            && (this.getInReplyToUserId() == null ? other.getInReplyToUserId() == null : this.getInReplyToUserId().equals(other.getInReplyToUserId()))
+            && (this.getInReplyToScreenName() == null ? other.getInReplyToScreenName() == null : this.getInReplyToScreenName().equals(other.getInReplyToScreenName()))
+            && (this.getThumbnailPic() == null ? other.getThumbnailPic() == null : this.getThumbnailPic().equals(other.getThumbnailPic()))
+            && (this.getBmiddlePic() == null ? other.getBmiddlePic() == null : this.getBmiddlePic().equals(other.getBmiddlePic()))
+            && (this.getOriginalPic() == null ? other.getOriginalPic() == null : this.getOriginalPic().equals(other.getOriginalPic()))
             && (this.getGeo() == null ? other.getGeo() == null : this.getGeo().equals(other.getGeo()))
-            && (this.getUser_id() == null ? other.getUser_id() == null : this.getUser_id().equals(other.getUser_id()))
-            && (this.getRetweeted_status() == null ? other.getRetweeted_status() == null : this.getRetweeted_status().equals(other.getRetweeted_status()))
-            && (this.getReposts_count() == null ? other.getReposts_count() == null : this.getReposts_count().equals(other.getReposts_count()))
-            && (this.getComments_count() == null ? other.getComments_count() == null : this.getComments_count().equals(other.getComments_count()))
-            && (this.getAttitudes_count() == null ? other.getAttitudes_count() == null : this.getAttitudes_count().equals(other.getAttitudes_count()))
+            && (this.getUserId() == null ? other.getUserId() == null : this.getUserId().equals(other.getUserId()))
+            && (this.getRetweetedStatus() == null ? other.getRetweetedStatus() == null : this.getRetweetedStatus().equals(other.getRetweetedStatus()))
+            && (this.getRepostsCount() == null ? other.getRepostsCount() == null : this.getRepostsCount().equals(other.getRepostsCount()))
+            && (this.getCommentsCount() == null ? other.getCommentsCount() == null : this.getCommentsCount().equals(other.getCommentsCount()))
+            && (this.getAttitudesCount() == null ? other.getAttitudesCount() == null : this.getAttitudesCount().equals(other.getAttitudesCount()))
             && (this.getMlevel() == null ? other.getMlevel() == null : this.getMlevel().equals(other.getMlevel()))
             && (this.getVisible() == null ? other.getVisible() == null : this.getVisible().equals(other.getVisible()))
-            && (this.getPic_ids() == null ? other.getPic_ids() == null : this.getPic_ids().equals(other.getPic_ids()))
-            && (this.getAd() == null ? other.getAd() == null : this.getAd().equals(other.getAd()));
+            && (this.getPicIds() == null ? other.getPicIds() == null : this.getPicIds().equals(other.getPicIds()))
+            && (this.getAd() == null ? other.getAd() == null : this.getAd().equals(other.getAd()))
+            && (this.getCreatedTime() == null ? other.getCreatedTime() == null : this.getCreatedTime().equals(other.getCreatedTime()));
     }
 
     @Override
@@ -203,22 +190,23 @@ public class Status implements Serializable {
         result = prime * result + ((getSource() == null) ? 0 : getSource().hashCode());
         result = prime * result + ((getFavorited() == null) ? 0 : getFavorited().hashCode());
         result = prime * result + ((getTruncated() == null) ? 0 : getTruncated().hashCode());
-        result = prime * result + ((getIn_reply_to_status_id() == null) ? 0 : getIn_reply_to_status_id().hashCode());
-        result = prime * result + ((getIn_reply_to_user_id() == null) ? 0 : getIn_reply_to_user_id().hashCode());
-        result = prime * result + ((getIn_reply_to_screen_name() == null) ? 0 : getIn_reply_to_screen_name().hashCode());
-        result = prime * result + ((getThumbnail_pic() == null) ? 0 : getThumbnail_pic().hashCode());
-        result = prime * result + ((getBmiddle_pic() == null) ? 0 : getBmiddle_pic().hashCode());
-        result = prime * result + ((getOriginal_pic() == null) ? 0 : getOriginal_pic().hashCode());
+        result = prime * result + ((getInReplyToStatusId() == null) ? 0 : getInReplyToStatusId().hashCode());
+        result = prime * result + ((getInReplyToUserId() == null) ? 0 : getInReplyToUserId().hashCode());
+        result = prime * result + ((getInReplyToScreenName() == null) ? 0 : getInReplyToScreenName().hashCode());
+        result = prime * result + ((getThumbnailPic() == null) ? 0 : getThumbnailPic().hashCode());
+        result = prime * result + ((getBmiddlePic() == null) ? 0 : getBmiddlePic().hashCode());
+        result = prime * result + ((getOriginalPic() == null) ? 0 : getOriginalPic().hashCode());
         result = prime * result + ((getGeo() == null) ? 0 : getGeo().hashCode());
-        result = prime * result + ((getUser_id() == null) ? 0 : getUser_id().hashCode());
-        result = prime * result + ((getRetweeted_status() == null) ? 0 : getRetweeted_status().hashCode());
-        result = prime * result + ((getReposts_count() == null) ? 0 : getReposts_count().hashCode());
-        result = prime * result + ((getComments_count() == null) ? 0 : getComments_count().hashCode());
-        result = prime * result + ((getAttitudes_count() == null) ? 0 : getAttitudes_count().hashCode());
+        result = prime * result + ((getUserId() == null) ? 0 : getUserId().hashCode());
+        result = prime * result + ((getRetweetedStatus() == null) ? 0 : getRetweetedStatus().hashCode());
+        result = prime * result + ((getRepostsCount() == null) ? 0 : getRepostsCount().hashCode());
+        result = prime * result + ((getCommentsCount() == null) ? 0 : getCommentsCount().hashCode());
+        result = prime * result + ((getAttitudesCount() == null) ? 0 : getAttitudesCount().hashCode());
         result = prime * result + ((getMlevel() == null) ? 0 : getMlevel().hashCode());
         result = prime * result + ((getVisible() == null) ? 0 : getVisible().hashCode());
-        result = prime * result + ((getPic_ids() == null) ? 0 : getPic_ids().hashCode());
+        result = prime * result + ((getPicIds() == null) ? 0 : getPicIds().hashCode());
         result = prime * result + ((getAd() == null) ? 0 : getAd().hashCode());
+        result = prime * result + ((getCreatedTime() == null) ? 0 : getCreatedTime().hashCode());
         return result;
     }
 
@@ -235,22 +223,23 @@ public class Status implements Serializable {
         sb.append(", source=").append(source);
         sb.append(", favorited=").append(favorited);
         sb.append(", truncated=").append(truncated);
-        sb.append(", in_reply_to_status_id=").append(in_reply_to_status_id);
-        sb.append(", in_reply_to_user_id=").append(in_reply_to_user_id);
-        sb.append(", in_reply_to_screen_name=").append(in_reply_to_screen_name);
-        sb.append(", thumbnail_pic=").append(thumbnail_pic);
-        sb.append(", bmiddle_pic=").append(bmiddle_pic);
-        sb.append(", original_pic=").append(original_pic);
+        sb.append(", inReplyToStatusId=").append(inReplyToStatusId);
+        sb.append(", inReplyToUserId=").append(inReplyToUserId);
+        sb.append(", inReplyToScreenName=").append(inReplyToScreenName);
+        sb.append(", thumbnailPic=").append(thumbnailPic);
+        sb.append(", bmiddlePic=").append(bmiddlePic);
+        sb.append(", originalPic=").append(originalPic);
         sb.append(", geo=").append(geo);
-        sb.append(", user_id=").append(user_id);
-        sb.append(", retweeted_status=").append(retweeted_status);
-        sb.append(", reposts_count=").append(reposts_count);
-        sb.append(", comments_count=").append(comments_count);
-        sb.append(", attitudes_count=").append(attitudes_count);
+        sb.append(", userId=").append(userId);
+        sb.append(", retweetedStatus=").append(retweetedStatus);
+        sb.append(", repostsCount=").append(repostsCount);
+        sb.append(", commentsCount=").append(commentsCount);
+        sb.append(", attitudesCount=").append(attitudesCount);
         sb.append(", mlevel=").append(mlevel);
         sb.append(", visible=").append(visible);
-        sb.append(", pic_ids=").append(pic_ids);
+        sb.append(", picIds=").append(picIds);
         sb.append(", ad=").append(ad);
+        sb.append(", createdTime=").append(createdTime);
         sb.append(", serialVersionUID=").append(serialVersionUID);
         sb.append("]");
         return sb.toString();

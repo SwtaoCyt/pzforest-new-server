@@ -19,6 +19,7 @@ repositories {
 }
 
 dependencies {
+
     implementation("org.springframework.boot:spring-boot-starter-freemarker")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
     implementation("org.springframework.boot:spring-boot-starter-web")
@@ -47,8 +48,15 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.12.5")
 // Sa-Token 权限认证，在线文档：https://sa-token.cc
     implementation ("cn.dev33:sa-token-spring-boot3-starter:1.34.0")
+// https://mvnrepository.com/artifact/com.alibaba/fastjson
+    implementation("com.alibaba:fastjson:2.0.32")
 
     implementation("cn.hutool:hutool-all:5.8.15")
+
+    // https://mvnrepository.com/artifact/io.minio/minio
+    // 图床api
+    implementation("io.minio:minio:8.5.3")
+    testImplementation("org.springframework:spring-test:6.0.6")
 }
 
 tasks.withType<Test> {

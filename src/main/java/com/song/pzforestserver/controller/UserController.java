@@ -1,7 +1,7 @@
 package com.song.pzforestserver.controller;
 
 import cn.dev33.satoken.stp.StpUtil;
-import cn.hutool.json.JSONObject;
+import com.song.pzforestserver.service.UserService;
 import com.song.pzforestserver.service.WeappService;
 import com.song.pzforestserver.util.Result;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 
 @Slf4j
@@ -27,23 +26,12 @@ public class UserController {
 
         // 测试登录，浏览器访问： http://localhost:8081/user/doLogin?username=zhang&password=123456
         @PostMapping("/login")
-        public Result<Map> login(@RequestBody Map<String, String> params) throws IOException {
+        public Result login(@RequestBody Map<String, String> params) throws IOException {
                 String code = params.get("code");
                 String encryptedData = params.get("encryptedData");
                 String iv = params.get("iv");
 
-                // 调用微信接口获取 session_key 和 openid
-                JSONObject sessionInfo = wxService.getSessionInfo(code);
-                Map map= new HashMap<>();
-
-                String openid = sessionInfo.getStr("openid");
-                String sessionkey = sessionInfo.getStr("session_key");
-                map.put("openid",openid);
-                map.put("session_key",sessionkey);
-                // 使用 openid 进行用户登录
-                StpUtil.login(openid);
-                // ... 进行业务处理，例如绑定用户信息等
-
+                Map map = wxService.login(code);
                 return Result.success(map);
         }
 

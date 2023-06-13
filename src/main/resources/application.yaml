@@ -1,12 +1,27 @@
 
 server:
   port: 8080
+minio:
+  url: http://106.52.75.202:9000
+  accessKey: ZqGlbWR6ELbjxUPy
+  secretKey: CmWxzWjkOiy23pAgHippO9Z5fw24q9dG
+  api: s3v4
+  path: auto
+  bucketName: pzforest
+pzforest:
+  access-token:
+    - "2.00Cr7AhCFlne1D50224d9dadjIQdBE"
+    - "2.00Cr7AhCxWGpzC70aeafc18fUlNDnB"
+    - "2.00Cr7AhCbIFBmC2d5ff123e3QHloED"
+    - "2.00Cr7AhC48cw9D47acd367abcSMdDC"
+    - "2.00Cr7AhC9pAvNE3f037476cagSG15E"
+
 spring:
   datasource:
     driver-class-name: org.mariadb.jdbc.Driver
     username: root
     password: aaa86925876
-    url: jdbc:mysql://106.52.75.202:3306/pzforest?useSSL=false&useUnicode=true&characterEncoding=utf-8&autoReconnect=true&serverTimezone=Asia/Shanghai
+    url: jdbc:mariadb://106.52.75.202:3306/pzforest?useSSL=false&useUnicode=true&characterEncoding=utf-8&autoReconnect=true&serverTimezone=Asia/Shanghai
   servlet:
     multipart:
       max-file-size: 20MB

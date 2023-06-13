@@ -1,14 +1,21 @@
 package com.song.pzforestserver.service.impl;
 
+import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
+import com.song.pzforestserver.entity.User;
+import com.song.pzforestserver.service.UserService;
 import com.song.pzforestserver.service.WeappService;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import okhttp3.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -18,6 +25,10 @@ public class WeappServiceImpl implements WeappService {
     public static String Secret = "85b681204f4058a099102c7d3ff04520";
     OkHttpClient client = new OkHttpClient();
 
+
+
+    @Autowired
+    UserService userService;
     @Override
     public JSONObject getSessionInfo(String code) throws IOException {
         HttpUrl.Builder urlBuilder = HttpUrl.parse(BASE_URL+"sns/jscode2session").newBuilder();
@@ -35,10 +46,37 @@ public class WeappServiceImpl implements WeappService {
 
 
         String json =response.body().string();
-        log.info("当前数据如下"+json);
         JSONObject jsonObject = JSONUtil.parseObj(json);
         return jsonObject;
 
 
+    }
+
+    @Override
+    public Map login(String code) throws IOException {
+        // 调用微信接口获取 session_key 和 openid
+        JSONObject sessionInfo = this.getSessionInfo(code);
+        Map map= new HashMap<>();
+
+        String openid = sessionInfo.getStr("openid");
+        User temp  = userService.selectUserByUserId(openid);
+        if (temp==null)
+        {
+            temp = new
+                    User();
+            UUID uuid =UUID.randomUUID();
+            temp.setId(String.valueOf(uuid));
+            temp.setOpenid(openid);
+            log.info(temp.toString());
+            userService.saveOrUpdate(temp);
+        }
+
+        String sessionkey = sessionInfo.getStr("session_key");
+        map.put("openid",openid);
+        map.put("session_key",sessionkey);
+        // 使用 openid 进行用户登录
+        StpUtil.login(openid);
+        // ... 进行业务处理，例如绑定用户信息等
+        return map;
     }
 }

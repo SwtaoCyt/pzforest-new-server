@@ -5,30 +5,57 @@
 <mapper namespace="com.song.pzforestserver.mapper.StatusMapper">
 
     <resultMap id="BaseResultMap" type="com.song.pzforestserver.entity.Status">
-            <id property="id" column="id" jdbcType="INTEGER"/>
-            <result property="mid" column="mid" jdbcType="INTEGER"/>
+            <id property="id" column="id" jdbcType="VARCHAR"/>
+            <result property="mid" column="mid" jdbcType="VARCHAR"/>
             <result property="idstr" column="idstr" jdbcType="VARCHAR"/>
             <result property="text" column="text" jdbcType="VARCHAR"/>
             <result property="source" column="source" jdbcType="VARCHAR"/>
             <result property="favorited" column="favorited" jdbcType="TINYINT"/>
             <result property="truncated" column="truncated" jdbcType="TINYINT"/>
-            <result property="in_reply_to_status_id" column="in_reply_to_status_id" jdbcType="VARCHAR"/>
-            <result property="in_reply_to_user_id" column="in_reply_to_user_id" jdbcType="VARCHAR"/>
-            <result property="in_reply_to_screen_name" column="in_reply_to_screen_name" jdbcType="VARCHAR"/>
-            <result property="thumbnail_pic" column="thumbnail_pic" jdbcType="VARCHAR"/>
-            <result property="bmiddle_pic" column="bmiddle_pic" jdbcType="VARCHAR"/>
-            <result property="original_pic" column="original_pic" jdbcType="VARCHAR"/>
+            <result property="inReplyToStatusId" column="in_reply_to_status_id" jdbcType="VARCHAR"/>
+            <result property="inReplyToUserId" column="in_reply_to_user_id" jdbcType="VARCHAR"/>
+            <result property="inReplyToScreenName" column="in_reply_to_screen_name" jdbcType="VARCHAR"/>
+            <result property="thumbnailPic" column="thumbnail_pic" jdbcType="VARCHAR"/>
+            <result property="bmiddlePic" column="bmiddle_pic" jdbcType="VARCHAR"/>
+            <result property="originalPic" column="original_pic" jdbcType="VARCHAR"/>
             <result property="geo" column="geo" jdbcType="VARCHAR"/>
-            <result property="user_id" column="user_id" jdbcType="INTEGER"/>
-            <result property="retweeted_status" column="retweeted_status" jdbcType="VARCHAR"/>
-            <result property="reposts_count" column="reposts_count" jdbcType="INTEGER"/>
-            <result property="comments_count" column="comments_count" jdbcType="INTEGER"/>
-            <result property="attitudes_count" column="attitudes_count" jdbcType="INTEGER"/>
+            <result property="userId" column="user_id" jdbcType="VARCHAR"/>
+            <result property="retweetedStatus" column="retweeted_status" jdbcType="VARCHAR"/>
+            <result property="repostsCount" column="reposts_count" jdbcType="INTEGER"/>
+            <result property="commentsCount" column="comments_count" jdbcType="INTEGER"/>
+            <result property="attitudesCount" column="attitudes_count" jdbcType="INTEGER"/>
             <result property="mlevel" column="mlevel" jdbcType="INTEGER"/>
             <result property="visible" column="visible" jdbcType="VARCHAR"/>
-            <result property="pic_ids" column="pic_ids" jdbcType="VARCHAR"/>
+            <result property="picIds" column="pic_ids" jdbcType="VARCHAR"/>
             <result property="ad" column="ad" jdbcType="VARCHAR"/>
+            <result property="createdTime" column="created_time" jdbcType="TIMESTAMP"/>
     </resultMap>
+
+    <resultMap id="StatusImageMap" type="com.song.pzforestserver.entity.Status">
+        <id property="id" column="id" jdbcType="VARCHAR"/>
+        <result property="text" column="text" jdbcType="VARCHAR"/>
+        <result property="retweetedStatus" column="retweeted_status" jdbcType="VARCHAR"/>
+        <result property="repostsCount" column="reposts_count" jdbcType="INTEGER"/>
+        <result property="commentsCount" column="comments_count" jdbcType="INTEGER"/>
+        <result property="attitudesCount" column="attitudes_count" jdbcType="INTEGER"/>
+        <result property="createdTime" column="created_time" jdbcType="TIMESTAMP"/>
+
+
+        <association javaType="com.song.pzforestserver.entity.Image" property="image">
+            <result property="status" column="status" jdbcType="VARCHAR"/>
+            <result property="filename" column="filename" jdbcType="VARCHAR"/>
+            <result property="path" column="path" jdbcType="VARCHAR"/>
+            <result property="url" column="url" jdbcType="VARCHAR"/>
+            <result property="uploadTime" column="upload_time" jdbcType="TIMESTAMP"/>
+        </association>
+
+    </resultMap>
+<sql id="Status_Image_Vo">
+    select
+    s.id,s.text,s.repostsCount,s.commentsCount,s.attitudesCount,s.created_time,i.url
+    from weibos_status s
+             LEFT JOIN image i ON s.id = i.status
+</sql>
 
     <sql id="Base_Column_List">
         id,mid,idstr,
@@ -38,6 +65,49 @@
         original_pic,geo,user_id,
         retweeted_status,reposts_count,comments_count,
         attitudes_count,mlevel,visible,
-        pic_ids,ad
+        pic_ids,ad,created_time
     </sql>
+
+    <sql id="StatusVo">
+        select
+            id,mid,idstr,
+            text,source,favorited,
+            truncated,in_reply_to_status_id,in_reply_to_user_id,
+            in_reply_to_screen_name,thumbnail_pic,bmiddle_pic,
+            original_pic,geo,user_id,
+            retweeted_status,reposts_count,comments_count,
+            attitudes_count,mlevel,visible,
+            pic_ids,ad,created_time
+        from weibos_status
+    </sql>
+
+    <select id="SelectStatusImageList" resultMap="StatusImageMap">
+        select
+        s.id,s.text,s.reposts_count,s.comments_count,s.attitudes_count,s.created_time,i.url
+        from weibos_status s
+        LEFT JOIN image i ON s.id = i.status
+        <where>
+            <if test="text != null">
+                AND s.text like CONCAT('%', #{text}, '%')
+            </if>
+        </where>
+        ORDER BY s.created_time DESC
+        LIMIT #{offset}, #{limit}
+</select>
+
+    <select id="SelectStatusList" resultMap="BaseResultMap">
+        <include refid="StatusVo"></include>
+        <where>
+            <if test="text != null">
+                AND text like CONCAT('%', #{text}, '%')
+            </if>
+        </where>
+
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="selectByWeiboId" parameterType="string" resultMap="BaseResultMap">
+        <include refid="StatusVo"></include>
+        where mid = #{id}
+    </select>
 </mapper>

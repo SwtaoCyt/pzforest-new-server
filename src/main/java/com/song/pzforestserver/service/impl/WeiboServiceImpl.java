@@ -6,30 +6,32 @@ import java.io.FileOutputStream;
 import java.net.URL;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
+
 import com.song.pzforestserver.config.WeiboConfig;
 import com.song.pzforestserver.entity.*;
 import com.song.pzforestserver.mapper.StatusMapper;
 import com.song.pzforestserver.service.*;
 
-import com.song.pzforestserver.util.MinioUploader;
-import com.song.pzforestserver.util.MultipartFileDto;
-import com.song.pzforestserver.util.Result;
+import com.song.pzforestserver.util.*;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import okhttp3.*;
+import org.apache.commons.lang3.StringUtils;
+import org.im4java.core.IM4JavaException;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
 import org.springframework.web.context.request.async.DeferredResult;
 import org.springframework.web.multipart.MultipartFile;
+import reactor.core.publisher.Mono;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 @Slf4j
@@ -41,8 +43,17 @@ public class WeiboServiceImpl implements WeiboService {
 
 
     @Resource
+    UserCommentsService userCommentsService;
+    @Resource
+    SensitiveWordService sensitiveWordService;
+    @Resource
+    CacheUtils cacheUtils;
+    @Resource
+    WeibosUsersService weibosUsersService;
+    @Resource
     CommentsService commentsService;
-
+    @Resource
+    SensitiveWordLogService sensitiveWordLogService;
     @Resource
     StatusMapper statusMapper;
     @Resource
@@ -130,6 +141,7 @@ public class WeiboServiceImpl implements WeiboService {
         String url = BASE_URL+"2/statuses/user_timeline.json"
                 +"?&access_token="+accessToken
                 +"&count="+count
+                +"&count="+count
                 +"&page="+page
                 +"&base_app=0"
                 +"&feature="+feature
@@ -195,6 +207,7 @@ public class WeiboServiceImpl implements WeiboService {
                 .build();
         Response response = client.newCall(request).execute();
         String json = response.body().string();
+//        log.info(json.toString());
         JSONArray jsonArray = JSONUtil.parseArray(json);
         List<StatusCounts> statusCounts = new ArrayList<>();
         for (int i=0;i<jsonArray.size();i++){
@@ -249,11 +262,10 @@ public class WeiboServiceImpl implements WeiboService {
      * @throws IOException
      * @throws WeiboException
      */
-    public  List<Comments> getComments(String accessToken, String id) throws IOException,WeiboException
-    {
-        HttpUrl.Builder urlBuilder = HttpUrl.parse(BASE_URL+"2/comments/show.json").newBuilder();
-        urlBuilder.addQueryParameter("access_token",accessToken);
-        urlBuilder.addQueryParameter("id",id);
+    public  List<Comments> getComments(String accessToken, String id) throws IOException,WeiboException {
+        HttpUrl.Builder urlBuilder = HttpUrl.parse(BASE_URL + "2/comments/show.json").newBuilder();
+        urlBuilder.addQueryParameter("access_token", accessToken);
+        urlBuilder.addQueryParameter("id", id);
         String url = urlBuilder.build().toString();
 
         Request request = new Request.Builder()
@@ -263,16 +275,35 @@ public class WeiboServiceImpl implements WeiboService {
         Response response = client.newCall(request).execute();
 //        log.info(response.body().string());
         String json = response.body().string();
-        log.info(json);
         JSONObject jsonObject = JSONUtil.parseObj(json);
         JSONArray jsonArray = jsonObject.getJSONArray("comments");
-        List<Comments> commentsLIst= jsonArray.toList(Comments.class);
-        for (Comments temp:commentsLIst
-             ) {
-            temp.setStatusId(Long.valueOf(id));
-            commentsService.saveOrUpdate(temp);
+        List<String> user = new ArrayList<>();
+        List<String> username = new ArrayList<>();
+        List<Comments> commentsList = null;
+        if (!jsonArray.isEmpty()) {
+            for (int i = 0; i < jsonArray.size(); i++) {
+                val object = jsonArray.getJSONObject(i);
+                val tempUser = object.getStr("user");
+                WeibosUsers weibosUsers = JSONUtil.toBean(tempUser, WeibosUsers.class);
+                user.add(weibosUsers.getIdstr());
+                username.add(weibosUsers.getName());
+                weibosUsersService.saveOrUpdate(weibosUsers);
+            }
+            commentsList = jsonArray.toList(Comments.class);
+
+            for (int i = 0; i < commentsList.size(); i++) {
+                Comments temp = commentsList.get(i);
+
+                temp.setName(username.get(i));
+                temp.setUserId(user.get(i));
+                temp.setStatusId(id);
+                commentsService.saveOrUpdate(temp);
+            }
+
+            commentsList.sort(Comparator.comparing(Comments::getRootid, Comparator.naturalOrder()));
         }
-        return  commentsLIst;
+
+        return commentsList;
     }
 
     public DeferredResult<String> createComment(String access_token, String id, String comment) throws IOException
@@ -300,7 +331,8 @@ public class WeiboServiceImpl implements WeiboService {
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 String responseBody = response.body().string();
-                log.info(responseBody);
+//                log.info(responseBody);
+
                 if (response.isSuccessful()) {
                     deferredResult.setResult(responseBody);
                 } else {
@@ -341,23 +373,30 @@ public class WeiboServiceImpl implements WeiboService {
             public void onResponse(Call call, Response response) throws IOException {
                 String responseBody = response.body().string();
                 if (response.isSuccessful()) {
-                    log.info(responseBody);
+//                    log.info(responseBody);
 
                     // 处理成功的逻辑
                     Status temp = JSONUtil.toBean(responseBody, Status.class);
                     JSONObject res = JSONUtil.parseObj(responseBody);
                     String userStr = res.getStr("user");
                     JSONObject userObj = JSONUtil.parseObj(userStr);
-                    log.info("id在这" + userObj.get("id").toString());
                     temp.setUserId(userObj.get("id").toString());
                     temp.setCreatedTime(DateTime.now());
                     statusService.saveOrUpdate(temp);
+
+                    Map hashmap = new HashMap<>();
+                    hashmap.put("code","200");
+                    hashmap.put("result","投稿成功");
+                    hashmap.put("id",res.getStr("id"));
+                    String  hashmaptostr =JSONUtil.toJsonStr(hashmap);
+                    log.info(hashmaptostr);
+                    callback.accept(hashmaptostr);
                 } else {
                     // 处理失败的逻辑
                     log.error(responseBody);
                 }
 
-                callback.accept(responseBody); // 将结果传递给回调函数
+//                callback.accept(hashmaptostr); // 将结果传递给回调函数
             }
         });
     }
@@ -369,7 +408,6 @@ public class WeiboServiceImpl implements WeiboService {
      * @param callback
      */
     public void sendStatus(String access_token, String status,Integer mode,String fromStatus, Consumer<String> callback) {
-        log.info("纯文字");
         String url = "https://api.weibo.com/2/statuses/share.json";
         FormBody requestBody = new FormBody.Builder()
                 .add("status", status + " http://pzforest.com")
@@ -399,7 +437,6 @@ public class WeiboServiceImpl implements WeiboService {
                     JSONObject res = JSONUtil.parseObj(responseBody);
                     String userStr = res.getStr("user");
                     JSONObject userObj = JSONUtil.parseObj(userStr);
-                    log.info("id在这" + userObj.get("id").toString());
                     temp.setUserId(userObj.get("id").toString());
                     temp.setMid(fromStatus);
                     temp.setCreatedTime(DateTime.now());
@@ -463,7 +500,7 @@ public class WeiboServiceImpl implements WeiboService {
             public void onResponse(Call call, Response response) throws IOException {
                 String responseBody = response.body().string();
                 if (response.isSuccessful()) {
-                    log.info(responseBody);
+//                    log.info(responseBody);
 
                     // 处理成功的逻辑
                     Status temp = JSONUtil.toBean(responseBody, Status.class);
@@ -478,6 +515,12 @@ public class WeiboServiceImpl implements WeiboService {
                     imageService.saveOrUpdate(tempImage);
                     temp.setMid(fromStatus);
                     statusService.saveOrUpdate(temp);
+                    Map hashmap = new HashMap<>();
+                    hashmap.put("code","200");
+                    hashmap.put("id",res.getStr("id"));
+                    hashmap.put("result","投稿成功");
+                    String  hashmaptostr =JSONUtil.toJsonStr(hashmap);
+                    callback.accept(hashmaptostr);
                 } else {
                     // 处理失败的逻辑
                     log.error(responseBody);
@@ -501,7 +544,7 @@ public class WeiboServiceImpl implements WeiboService {
         String url = "https://api.weibo.com/2/statuses/share.json";
 //        log.info("上传图片成功！url如下"+image.getResource());
      Image   tempImage = minioUploader.uploadImage(image);
-        log.info("上传成功！url:"+tempImage.getUrl());
+//        log.info("上传成功！url:"+tempImage.getUrl());
         MultipartBody.Builder builder = new MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
                 .addFormDataPart("access_token", access_token)
@@ -532,7 +575,7 @@ public class WeiboServiceImpl implements WeiboService {
             public void onResponse(Call call, Response response) throws IOException {
                 String responseBody = response.body().string();
                 if (response.isSuccessful()) {
-                    log.info(responseBody);
+//                    log.info(responseBody);
 
                     // 处理成功的逻辑
                     Status temp = JSONUtil.toBean(responseBody, Status.class);
@@ -546,6 +589,13 @@ public class WeiboServiceImpl implements WeiboService {
                     temp.setCreatedTime(DateTime.now());
                     imageService.saveOrUpdate(tempImage);
 
+                    Map hashmap = new HashMap<>();
+
+                    hashmap.put("code","200");
+                    hashmap.put("result","投稿成功");
+                    hashmap.put("id",res.getStr("id"));
+                   String  hashmaptostr =JSONUtil.toJsonStr(hashmap);
+                   callback.accept(hashmaptostr);
                     statusService.saveOrUpdate(temp);
                 } else {
                     // 处理失败的逻辑
@@ -560,7 +610,7 @@ public class WeiboServiceImpl implements WeiboService {
     @Override
     public void handleAt() {
         String accessTokens = WeiboConfig.getAccessToken();
-
+        log.info("当前时间:"+DateTime.now()+",开始执行定时任务");
         // 使用accessTokens进行其他操作
 
          String url = "https://api.weibo.com/2/statuses/mentions.json?access_token="+accessTokens;
@@ -669,9 +719,11 @@ public class WeiboServiceImpl implements WeiboService {
         for(int i=0;i<statuses.size();i++)
         {
             Status temp =  statuses.get(i);
+
             ids.add(temp.getId());
         }
         String[] id= ids.toArray(new String[ids.size()]);
+
         List<StatusCounts> statusCounts = this.getStatusCounts(weiboConfig.getAccessToken(),id);
         for(int i=0;i<statuses.size();i++)
         {
@@ -682,13 +734,55 @@ public class WeiboServiceImpl implements WeiboService {
         return statuses;
     }
 
-    public DeferredResult<String> reply(String access_token,int cid,  int id,String comment) throws IOException
+    public Mono<String> reply(String cid,String id,String openid,String accessToken,String comment)
+    {
+        return Mono.create(monoSink->{
+            String url = "https://api.weibo.com/2/comments/reply.json";
+            HttpUrl.Builder urlBuilder = HttpUrl.parse(url).newBuilder();
+            urlBuilder.addQueryParameter("access_token", accessToken);
+            urlBuilder.addQueryParameter("cid",cid);
+            urlBuilder.addQueryParameter("id",id);
+            urlBuilder.addQueryParameter("without_mention","1");
+            urlBuilder.addQueryParameter("comment", comment);
+            urlBuilder.addQueryParameter("rip","119.129.228.246");
+            String fullUrl = urlBuilder.build().toString();
+            Request request = new Request.Builder()
+                    .url(fullUrl)
+                    .post(RequestBody.create("", MediaType.get("application/x-www-form-urlencoded")))
+                    .build();
+            Call call = client.newCall(request);
+            call.enqueue(new Callback() {
+                @Override
+                public void onFailure(Call call, IOException e) {
+                    monoSink.error(e);
+                }
+
+                @Override
+                public void onResponse(Call call, Response response) throws IOException {
+                    String responseBody = response.body().string();
+                    if (response.isSuccessful()) {
+                        JSONObject resultJson  = JSONUtil.parseObj(responseBody);
+                        Integer commentId = resultJson.getInt("id");
+                        String rootId = resultJson.getStr("rootidstr");
+                        String text =resultJson.getStr("text");
+                        commentsService.createComment(rootId, String.valueOf(commentId),openid,comment,DateTime.now());
+
+                        monoSink.success(responseBody);
+                    } else {
+                        monoSink.success(responseBody);
+                    }
+                }
+            });
+        });
+    }
+
+    public DeferredResult<String> reply(String access_token,String cid,  String id,String comment) throws IOException
     {
         String url = "https://api.weibo.com/2/comments/reply.json";
         HttpUrl.Builder urlBuilder = HttpUrl.parse(url).newBuilder();
         urlBuilder.addQueryParameter("access_token", accessToken);
-        urlBuilder.addQueryParameter("cid",String.valueOf(cid));
-        urlBuilder.addQueryParameter("id", String.valueOf(id));
+        urlBuilder.addQueryParameter("cid",cid);
+        urlBuilder.addQueryParameter("id",id);
         urlBuilder.addQueryParameter("comment", comment);
         urlBuilder.addQueryParameter("rip","119.129.228.246");
         String fullUrl = urlBuilder.build().toString();
@@ -720,6 +814,58 @@ public class WeiboServiceImpl implements WeiboService {
 
 
 
+    public Mono<Object> createComment(String access_token ,String comment,String weiboId,String openid)
+    {
+        return  Mono.create(monoSink ->{
+            String userNickname=  userService.selectNicknameByOpenId(openid);
+            log.info("userNickname"+userNickname);
+            String commentfinal= comment;
+
+            if(StringUtils.isNotEmpty( userNickname))
+            {
+                commentfinal=""+userNickname+"评论:" +commentfinal;
+            }
+            String url = "https://api.weibo.com/2/comments/create.json";
+            HttpUrl.Builder urlBuilder = HttpUrl.parse(url).newBuilder();
+            urlBuilder.addQueryParameter("access_token", accessToken);
+            urlBuilder.addQueryParameter("id", String.valueOf(weiboId));
+            urlBuilder.addQueryParameter("comment", comment);
+            urlBuilder.addQueryParameter("rip","119.129.228.246");
+            String fullUrl = urlBuilder.build().toString();
+            Request request = new Request.Builder()
+                    .url(fullUrl)
+                    .post(RequestBody.create("", MediaType.get("application/x-www-form-urlencoded")))
+                    .build();
+            Call call = client.newCall(request);
+            call.enqueue(new Callback() {
+                @Override
+                public void onFailure(Call call, IOException e) {
+                    monoSink.error(e);
+                }
+
+                @Override
+                public void onResponse(Call call, Response response) throws IOException {
+                    String responseBody = response.body().string();
+//                log.info(responseBody);
+
+                    if (response.isSuccessful()) {
+                        log.info(responseBody);
+                        JSONObject resultJson  = JSONUtil.parseObj(responseBody);
+                        Integer commentId = resultJson.getInt("id");
+                        String rootId = resultJson.getStr("rootidstr");
+                        String text =resultJson.getStr("text");
+                        commentsService.createComment(rootId, String.valueOf(commentId),openid,comment,DateTime.now());
+                        monoSink.success(responseBody);
+
+                    } else {
+
+                        monoSink.success(responseBody);
+                    }
+                }
+            });
+        });
+    }
+
     /**
      * 投稿并且保存内容到数据库
      * @param access_token 用户授权的唯一票据，用于调用微博的开放接口，同时也是第三方应用验证微博用户登录的唯一票据，第三方应用应该对该票据进行校验，校验方法为调用 oauth2/get_token_info 接口，对比返回的授权信息中的APPKEY是否正确一致，然后用 access_token 与自己应用内的用户建立唯一影射关系，来识别登录状态，不能只是简单的使用本返回值里的UID字段来做登录识别。
@@ -730,39 +876,91 @@ public class WeiboServiceImpl implements WeiboService {
      * @return DeferredResult<String>
      * @throws IOException
      */
-    public  DeferredResult<String> contributeAndSave(String access_token,String status,MultipartFile image,String openId,Integer mode) throws IOException {
-        final  Integer TEXTINIMG =1;
+    public Mono<String> contributeAndSave(String access_token, String status, MultipartFile image, String openId, Integer mode) throws IOException {
+        final Integer TEXTINIMG = 1;
         final Integer INEEDTEXT = 0;
-        User curUser=   userService.selectUserByUserId(openId);
-        DeferredResult<String> deferredResult = new DeferredResult<>();
-        //该用户没有注册
-        if (curUser==null)
-        {
-            return  deferredResult;
-        }
-        //如果有图片存在的话，执行如下逻辑
-        if (!ObjectUtils.isEmpty(image)) {
-            this.sendStatus(access_token, status, image,mode, result -> {
-                //获取这条微博的id
-                String id = JSONUtil.parseObj(result).getStr("id");
+        Map<String, String> finresult = new HashMap<>();
+        User curUser = userService.selectUserByUserId(openId);
+         AtomicReference<String> text = new AtomicReference<>(status);
+        return Mono.create(monoSink -> {
+            val check = sensitiveWordService.check();
+            boolean isSensitive = check.containsSensitiveWords(text.get());
+            if (isSensitive) {
+                Map<Integer, Integer> triggeredWordsAndLevels = check.getTriggeredWordsAndLevels(text.get());
+                for (Map.Entry<Integer, Integer> entry : triggeredWordsAndLevels.entrySet()) {
+                    int wordId = entry.getKey();
+                    int level = entry.getValue();
 
-                statusUserService.AddStatusUser(openId,"1",id);
+                    log.info("触发敏感词ID: " + wordId + ", 等级: " + level);
 
+                    SensitiveWordLog sensitiveWordLog = new SensitiveWordLog();
+                    sensitiveWordLog.setWordId(wordId);
+                    sensitiveWordLog.setContent(String.valueOf(text));
+                    sensitiveWordLog.setTimestamp(DateTime.now());
+                    sensitiveWordLog.setUserId(openId);
+                    sensitiveWordLogService.saveOrUpdate(sensitiveWordLog);
+                    if (level == 1) {
+                        finresult.put("result", "你的内容被判断为违规，多次记录会被封号，请注意言行");
+                        finresult.put("code", "401");
+                        String byJSONString = JSONUtil.toJsonStr(finresult);
+                        monoSink.success(byJSONString);
+                        log.info(byJSONString);
+                        return;
+                    }
+                    if (level == 2) {
+                        text.set(check.filterSensitiveWords(text.get()));
+                    }
+                }
+            }
+            // 该用户没有注册
+            if (curUser == null) {
+                finresult.put("result", "你还没有注册呢");
+                finresult.put("code", "402");
+                String byJSONString = JSONUtil.toJsonStr(finresult);
+                monoSink.success(byJSONString);
+                return;
+            }
+            // 判断该用户是否已经发过一次
+            if (commentsService.canComment(openId) == false) {
+                finresult.put("result", "一小时内已经发送过，请稍后再试");
+                finresult.put("code", "403");
+                String byJSONString = JSONUtil.toJsonStr(finresult);
+                monoSink.success(byJSONString);
+                return;
+            }
+            // 如果有图片存在的话，执行如下逻辑
+            if (!ObjectUtils.isEmpty(image)) {
+                try {
 
-                deferredResult.setResult(result);
-            });
-        }
-        //如果没有图片的话执行下面的逻辑
-        else {
-            this.sendStatus(access_token, status,mode, result -> {
-                String id = JSONUtil.parseObj(result).getStr("id");
-                // 保存用户发送微博的信息！！
-                statusUserService.AddStatusUser(openId,"1",id);
-                deferredResult.setResult(result);
-            });
-        }
+                    MultipartFile compressImage  = ImageProcessor.compressImage(image);
+                    this.sendStatus(access_token, status, compressImage, mode, result -> {
+                        // 获取这条微博的id
+                        String id = JSONUtil.parseObj(result).getStr("id");
+                        log.info("生成微博:贴文id为"+ id);
+                        statusUserService.AddStatusUser(openId, "1", id);
 
-        return  deferredResult;
+                        monoSink.success(result); // 将结果传递给MonoSink
+                    });
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } catch (IM4JavaException e) {
+                    e.printStackTrace();
+                }
+            }
+            // 如果没有图片的话执行下面的逻辑
+            else {
+                this.sendStatus(access_token, status, mode, result -> {
+                    String id = JSONUtil.parseObj(result).getStr("id");
+
+                    // 保存用户发送微博的信息！！
+                    statusUserService.AddStatusUser(openId, "1", id);
+                    log.info("生成微博:贴文id为"+ id);
+                    monoSink.success(result); // 将结果传递给MonoSink
+                });
+            }
+        });
     }
 
 }

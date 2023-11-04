@@ -19,7 +19,7 @@ repositories {
 }
 
 dependencies {
-
+    implementation("org.springframework.boot:spring-boot-starter-data-redis")
     implementation("org.springframework.boot:spring-boot-starter-freemarker")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
     implementation("org.springframework.boot:spring-boot-starter-web")
@@ -56,7 +56,11 @@ dependencies {
     // https://mvnrepository.com/artifact/io.minio/minio
     // 图床api
     implementation("io.minio:minio:8.5.3")
-    testImplementation("org.springframework:spring-test:6.0.6")
+    // https://mvnrepository.com/artifact/org.im4java/im4java
+    implementation("org.im4java:im4java:1.4.0")
+// https://mvnrepository.com/artifact/org.springframework/spring-test
+    testImplementation("org.springframework:spring-test:6.0.11")
+
 }
 
 tasks.withType<Test> {

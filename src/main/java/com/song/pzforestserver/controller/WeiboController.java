@@ -1,5 +1,8 @@
 package com.song.pzforestserver.controller;
 
+import cn.hutool.json.JSONObject;
+import cn.hutool.json.JSONUtil;
+import com.alibaba.fastjson2.JSON;
 import com.song.pzforestserver.config.WeiboConfig;
 import com.song.pzforestserver.entity.Comments;
 import com.song.pzforestserver.entity.Status;
@@ -23,9 +26,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.async.DeferredResult;
 import org.springframework.web.multipart.MultipartFile;
+import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -73,21 +78,27 @@ public class WeiboController {
                                 @RequestParam("page") int offset,
                                 @RequestParam(value = "limit", required = false) int limit) throws IOException {
         List<Status> statuses=new ArrayList<>();
+        Integer page=0;
         if(text.equals("null"))
         {
             statuses  = weiboResponse.SelectStatusList(null, offset, limit);
+            page= statusService.getTotalCount(null);
         }
         else {
             statuses = weiboResponse.SelectStatusList(text, offset, limit);
+            page= statusService.getTotalCount(text);
         }
 
+        Map<String,Object> status  = new HashMap<>();
 
-        return new Result(200, "查询成功", statuses);
+        status.put("count",page);
+        status.put("statuses",statuses);
+        return new Result(200, "查询成功", status);
     }
 
     @RequestMapping(value = "/sendStatusForText")
     @Operation(summary = "sendStatusOnlyText")
-    public Result send_status_onlyText(@RequestBody Map<String, Object> requestData
+    public Mono<Result> send_status_onlyText(@RequestBody Map<String, Object> requestData
 
     ) throws IOException {
         String accessToken = (String) requestData.get("accessToken");
@@ -95,11 +106,14 @@ public class WeiboController {
         String openid = (String) requestData.get("openid");
         String text = (String) requestData.get("text");
         Integer mode = (Integer) requestData.get("mode");
-//        log.info(accessToken);
-//        log.info(String.valueOf(StringUtils.isEmpty(accessToken)));
         String token = StringUtils.isEmpty(accessToken) ? weiboConfig.getAccessToken():accessToken;
-        weiboResponse.contributeAndSave(token,text,null,openid,mode);
-        return new Result(200,"投稿成功！",null);
+        return weiboResponse.contributeAndSave(token, text, null, openid, mode)
+                .map(result -> {
+                    JSONObject jsonObject = JSONUtil.parseObj(result);
+                    int code = jsonObject.getInt("code");
+                    String message = jsonObject.getStr("result");
+                    return new Result(code, message, null);
+                });
     }
 
     /**
@@ -109,19 +123,22 @@ public class WeiboController {
      */
     @PostMapping(value = "/sendStatus", consumes = "multipart/form-data")
     @Operation(summary = "sendStatus")
-    public Result send_status(@RequestParam("accessToken") String accessToken,
+    public Mono<Result> send_status(@RequestParam("accessToken") String accessToken,
             @RequestParam("file") MultipartFile file,
                               @RequestParam("sessionId") String sessionId,
                               @RequestParam("openid") String openid,
                               @RequestParam("text") String text,
     @RequestParam("mode") Integer mode) throws IOException {
-    log.info("accessToken:" +accessToken);
-
         String token = accessToken.equals("[object Null]") ? weiboConfig.getAccessToken():accessToken;
 
-        weiboResponse.contributeAndSave(token,text,file,openid,mode);
+//        weiboResponse.contributeAndSave(token,text,file,openid,mode);
 
-        return new Result(200,"ok",null);
+        return  weiboResponse.contributeAndSave(token,text,file,openid,mode).map(result ->{
+            JSONObject jsonObject = JSONUtil.parseObj(result);
+            int code = jsonObject.getInt("code");
+            String message = jsonObject.getStr("result");
+            return new Result(code, message, null);
+        });
     }
 
     @Operation(summary = "hometimeline")
@@ -148,6 +165,8 @@ public class WeiboController {
         return  new Result(200,"ok",null);
     }
 
+
+
     /**
      * 显示微博
      * @param accessToken
@@ -172,21 +191,28 @@ public class WeiboController {
 
     /**
      *创建评论
-     * @param accessToken
-     * @param id
-     * @param comment
+     * @param requestData
      * @throws IOException
      */
     @Operation(summary="createComment")
-    @RequestMapping("createComment")
-    public DeferredResult<String> createComment(@RequestParam("access_token") String accessToken,
-                                                @RequestParam("id") long id,
-                                                @RequestParam("comment") String comment) throws IOException {
+    @PostMapping("createComment")
+    public Mono<Result> createComment(
+            @RequestBody Map<String, Object> requestData
+//            @RequestParam("access_token") String accessToken,
+//                                      @RequestParam("id") String id,
+//                                      @RequestParam("openid"  )String openid,
+//                                      @RequestParam("comment") String comment
+    ) throws IOException {
+            String accessToken = (String) requestData.get("access_token");
+            String comment = (String) requestData.get("comment");
+            String id = (String) requestData.get("id");
+            String openid = (String) requestData.get("openid");
+        String token = StringUtils.isEmpty(accessToken)||accessToken.equals("[object Null]") ? weiboConfig.getAccessToken():accessToken;
 
-
-
-
-        return weiboResponse.createComment(accessToken, String.valueOf(id),comment);
+        return weiboResponse.createComment(token,comment,id,openid)
+                .map(result-> {
+            return new Result(200,"ok",result.toString());
+        });
     }
 
     /**
@@ -206,24 +232,48 @@ public class WeiboController {
         return new Result(200,"ok",comments);
     }
 
-    /**
-     * 评论评论
-     * @param accessToken
-     * @param cid
-     * @param id
-     * @param comment
-     * @return
-     * @throws IOException
-     */
-    @Operation(summary="reply")
-    @RequestMapping("reply")
-    public DeferredResult<String> reply(@RequestParam("access_token") String accessToken,
-                                        @RequestParam("cid") int cid,
-                                        @RequestParam("id") int id,
-                                        @RequestParam("comment") String comment
-    ) throws IOException {
 
-        return weiboResponse.reply(accessToken,cid,id,comment);
+
+
+
+//    /**
+//     * 评论评论
+//     * @param accessToken
+//     * @param cid
+//     * @param id
+//     * @param comment
+//     * @return
+//     * @throws IOException
+//     */
+//    @Operation(summary="reply")
+//    @RequestMapping("reply")
+//    public DeferredResult<String> reply(@RequestParam("access_token") String accessToken,
+//                                        @RequestParam("cid") String cid,
+//                                        @RequestParam("id") String id,
+//                                        @RequestParam("comment") String comment
+//    ) throws IOException {
+//
+//        return weiboResponse.reply(accessToken,cid,id,comment);
+//    }
+
+
+
+    @Operation(summary = "reply")
+    @PostMapping("reply")
+    public  Mono<Result> reply( @RequestBody Map<String, Object> requestData)
+    {
+        log.info(requestData.toString());
+        String accessToken = (String) requestData.get("access_token");
+        String cid = requestData.get("cid").toString();
+        String comment = (String) requestData.get("comment");
+        String id = requestData.get("id").toString();
+        String openid = (String) requestData.get("openid");
+        String token = StringUtils.isEmpty(accessToken)||accessToken.equals("[object Null]") ? weiboConfig.getAccessToken():accessToken;
+
+        return weiboResponse.reply(cid,id,openid,token,comment)
+        .map(result->{
+            return new Result(200,"ok",result);
+    });
     }
 
 }

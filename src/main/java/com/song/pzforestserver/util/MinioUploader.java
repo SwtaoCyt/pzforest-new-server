@@ -80,7 +80,6 @@ ImageService imageService;
 
     public Image uploadImage(MultipartFile file) {
         try {
-            log.info(String.valueOf(file.getSize()));
             // 创建 Minio 客户端
             MinioClient minioClient = MinioClient.builder()
                     .endpoint(url)

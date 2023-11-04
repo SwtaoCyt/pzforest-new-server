@@ -16,4 +16,6 @@ public interface StatusService extends IService<Status> {
 
 
     Status selectByWeiboId(String id);
+
+    Integer getTotalCount(String text);
 }

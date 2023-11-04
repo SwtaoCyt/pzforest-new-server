@@ -95,6 +95,15 @@
         LIMIT #{offset}, #{limit}
 </select>
 
+    <select id="getTotalCount" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM weibos_status
+        <where>
+            <if test="text != null">
+                AND text LIKE CONCAT('%', #{text}, '%')
+            </if>
+        </where>
+    </select>
+
     <select id="SelectStatusList" resultMap="BaseResultMap">
         <include refid="StatusVo"></include>
         <where>

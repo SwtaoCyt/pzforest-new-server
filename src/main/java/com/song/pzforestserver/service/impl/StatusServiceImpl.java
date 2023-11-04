@@ -35,6 +35,11 @@ public class StatusServiceImpl extends ServiceImpl<StatusMapper, Status>
         return statusMapper.selectByWeiboId(id);
     }
 
+    @Override
+    public Integer getTotalCount(String text) {
+        return statusMapper.getTotalCount(text);
+    }
+
 
 }
 

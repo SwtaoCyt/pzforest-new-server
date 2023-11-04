@@ -1,4 +1,6 @@
-
+logging:
+  file:
+    path: /var/wwwroot/
 server:
   port: 8080
 minio:
@@ -15,8 +17,19 @@ pzforest:
     - "2.00Cr7AhCbIFBmC2d5ff123e3QHloED"
     - "2.00Cr7AhC48cw9D47acd367abcSMdDC"
     - "2.00Cr7AhC9pAvNE3f037476cagSG15E"
-
 spring:
+  data:
+    redis:
+      host: 106.52.75.202
+      port: 6379
+      database: 0
+      password: 95270625
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
   datasource:
     driver-class-name: org.mariadb.jdbc.Driver
     username: root
@@ -24,9 +37,9 @@ spring:
     url: jdbc:mariadb://106.52.75.202:3306/pzforest?useSSL=false&useUnicode=true&characterEncoding=utf-8&autoReconnect=true&serverTimezone=Asia/Shanghai
   servlet:
     multipart:
-      max-file-size: 20MB
+      max-file-size: 100MB
       max-request-size:
-        20MB
+        100MB
 ############## Sa-Token 配置 (文档: https://sa-token.cc) ##############
 sa-token:
   # token名称 (同时也是cookie名称)

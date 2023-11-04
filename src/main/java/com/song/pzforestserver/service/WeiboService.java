@@ -5,12 +5,10 @@ import com.song.pzforestserver.entity.Status;
 import com.song.pzforestserver.entity.StatusCounts;
 import com.song.pzforestserver.entity.WeiboException;
 import com.song.pzforestserver.util.Result;
-import io.swagger.v3.oas.models.security.SecurityScheme;
-import okhttp3.Callback;
 import org.springframework.web.context.request.async.DeferredResult;
 import org.springframework.web.multipart.MultipartFile;
+import reactor.core.publisher.Mono;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.function.Consumer;
@@ -18,9 +16,7 @@ import java.util.function.Consumer;
 public interface WeiboService {
     /**
      * 发送微博,该方法不带图片。
-     * @param access_token
      * @param status 文字内容
-     * @param callback
      */
     public void sendStatus(String access_token, String status, Integer mode, Consumer<String> callback);
 
@@ -107,8 +103,8 @@ public interface WeiboService {
      * @return
      * @throws IOException
      */
-    public DeferredResult<String> reply(String access_token,int cid,  int id,String comment) throws IOException;
-
+    public DeferredResult<String> reply(String access_token,String cid,  String id,String comment) throws IOException;
+    public Mono<String> reply(String cid,String id,String openid,String accessToken,String comment);
     /**
      * 投稿并保存
      * @param access_token
@@ -118,7 +114,7 @@ public interface WeiboService {
      * @return
      * @throws IOException
      */
-    DeferredResult<String> contributeAndSave(String access_token, String status, MultipartFile image, String openId,Integer mode) throws IOException;
+    Mono<String> contributeAndSave(String access_token, String status, MultipartFile image, String openId, Integer mode) throws IOException;
 
     public  List<Comments> getComments(String accessToken, String id) throws IOException,WeiboException;
     /**
@@ -131,7 +127,7 @@ public interface WeiboService {
      */
     public void sendStatus(String access_token, String status, MultipartFile image, Integer mode, Consumer<String> callback) throws IOException;
 
-
+    public Mono<Object> createComment(String access_token ,String comment,String weiboId,String openid);
 
     void handleAt();
 }

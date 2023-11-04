@@ -21,6 +21,8 @@ public interface StatusMapper extends BaseMapper<Status> {
 
     Status selectByWeiboId(String id);
 
+    Integer getTotalCount(String text);
+
 }
 
 

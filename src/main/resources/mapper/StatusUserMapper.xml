@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.song.pzforestserver.mapper.StatusUserMapper">
+
+    <resultMap id="BaseResultMap" type="com.song.pzforestserver.entity.StatusUser">
+            <id property="id" column="id" jdbcType="INTEGER"/>
+            <result property="status" column="status" jdbcType="VARCHAR"/>
+            <result property="userid" column="userid" jdbcType="VARCHAR"/>
+            <result property="contributeType" column="contribute_type" jdbcType="VARCHAR"/>
+            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,status,userid,
+        contribute_type,create_time
+    </sql>
+</mapper>

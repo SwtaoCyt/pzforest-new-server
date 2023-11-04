@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.song.pzforestserver.mapper.SensitiveWordMapper">
+
+    <resultMap id="BaseResultMap" type="com.song.pzforestserver.entity.SensitiveWord">
+            <id property="id" column="id" jdbcType="INTEGER"/>
+            <result property="word" column="word" jdbcType="VARCHAR"/>
+            <result property="level" column="level" jdbcType="INTEGER"/>
+            <result property="replace" column="replace" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <sql id="select_Vo">
+        select      *
+from    sensitive_word
+    </sql>
+    <sql id="Base_Column_List">
+        id,word,level,replace
+    </sql>
+    <select id="getAllSenWord" resultType="com.song.pzforestserver.entity.SensitiveWord">
+        <include refid="select_Vo"></include>
+    </select>
+</mapper>

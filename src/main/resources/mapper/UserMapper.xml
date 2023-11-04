@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.song.pzforestserver.mapper.UserMapper">
+
+    <resultMap id="BaseResultMap" type="com.song.pzforestserver.entity.User">
+            <id property="id" column="id" jdbcType="VARCHAR"/>
+            <result property="openid" column="openid" jdbcType="VARCHAR"/>
+            <result property="phone" column="phone" jdbcType="VARCHAR"/>
+            <result property="nikename" column="nikeName" jdbcType="VARCHAR"/>
+            <result property="gender" column="gender" jdbcType="VARCHAR"/>
+            <result property="avatarurl" column="avatarUrl" jdbcType="VARCHAR"/>
+            <result property="city" column="city" jdbcType="VARCHAR"/>
+            <result property="country" column="country" jdbcType="VARCHAR"/>
+            <result property="unionid" column="unionId" jdbcType="INTEGER"/>
+            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+            <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,openid,phone,
+        nikeName,gender,avatarUrl,
+        city,country,unionId,
+        create_time,update_time
+    </sql>
+
+    <sql id="select_Vo">
+        select
+          id,  openid,phone,
+            nikeName,gender,avatarUrl,
+            city,country,unionId,
+            create_time,update_time
+        from user
+    </sql>
+
+
+    <select id="selectUserByUserId" parameterType="string" resultType="com.song.pzforestserver.entity.User">
+        <include refid="select_Vo"></include>
+where openid  = #{openid}
+    </select>
+
+    <select id="selectNicknameByOpenId" resultType="string" parameterType="string">
+        select nikeName from user where openid = #{openid}
+    </select>
+</mapper>
